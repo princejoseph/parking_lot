@@ -113,8 +113,8 @@ Instead of a native app with a proximity sensor, this app includes a
 3. Detection is relative to that baseline, so a toy car hovering over the
    phone trips it without sealing the lens, in any room lighting: dimming
    below 65% of baseline → occupied; recovering above 85% → vacant (the gap
-   is the anti-flap hysteresis). While the spot is empty the baseline slowly
-   tracks lighting drift.
+   is the anti-flap hysteresis). The baseline stays fixed after calibration —
+   if the room lighting changes a lot, tap reload and re-calibrate.
 
 The sensor page is itself a Hyperstack component
 ([spot_sensor.rb](app/hyperstack/components/spot_sensor.rb)) — Ruby all the

@@ -7,6 +7,8 @@ class SpotSensor < HyperComponent
   # Occupancy is judged relative to a baseline calibrated at start (spot
   # empty), so a car hovering over the phone trips it without sealing the
   # lens, and it works in bright or dim rooms. Ratio gap = hysteresis.
+  # The baseline is fixed after calibration: adapting it while "vacant"
+  # let an approaching car drag it down and blunt the trigger.
   CALIBRATION_SAMPLES = 5     # ~2s at 400ms/sample
   OCCUPIED_RATIO = 0.65       # dims below 65% of baseline -> occupied
   VACANT_RATIO   = 0.85       # recovers above 85% -> vacant
@@ -79,9 +81,6 @@ class SpotSensor < HyperComponent
       report(true)
     elsif @occupied != false && avg > @baseline * VACANT_RATIO
       report(false)
-    elsif @occupied == false
-      # track slow lighting drift while the spot is empty
-      @baseline = (0.95 * @baseline) + (0.05 * avg)
     end
   end
 
