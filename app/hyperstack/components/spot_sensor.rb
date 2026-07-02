@@ -45,13 +45,26 @@ class SpotSensor < HyperComponent
         return video.play();
       }).then(function() {
         setInterval(function() {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          var px = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-          var sum = 0;
-          for (var i = 0; i < px.length; i += 4) {
-            sum += 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+          var w = canvas.width, h = canvas.height;
+          ctx.drawImage(video, 0, 0, w, h);
+          var px = ctx.getImageData(0, 0, w, h).data;
+          // Average whole-frame brightness dilutes the car's shadow with
+          // ambient light. Instead take the DARKEST cell of a 4x4 grid —
+          // the car over the lens blacks out at least one cell.
+          var bw = w / 4, bh = h / 4, darkest = 255;
+          for (var by = 0; by < 4; by++) {
+            for (var bx = 0; bx < 4; bx++) {
+              var sum = 0;
+              for (var y = by * bh; y < (by + 1) * bh; y++) {
+                for (var x = bx * bw; x < (bx + 1) * bw; x++) {
+                  var i = (y * w + x) * 4;
+                  sum += 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+                }
+              }
+              darkest = Math.min(darkest, sum / (bw * bh));
+            }
           }
-          #{sample(`sum / (px.length / 4)`)};
+          #{sample(`darkest`)};
         }, 400);
       }).catch(function(e) {
         #{camera_failed(`'' + e`)};
@@ -143,7 +156,7 @@ class SpotSensor < HyperComponent
         state_text
       end
       P(class: "text-gray-400 mt-4") do
-        "brightness: #{@level || '–'}#{" (baseline #{@baseline.round})" if @baseline}"
+        "darkest region: #{@level || '–'}#{" (baseline #{@baseline.round})" if @baseline}"
       end
 
       VIDEO(id: "sensor-cam", playsInline: true, muted: true, class: "hidden")
