@@ -3,6 +3,33 @@
 A real-time parking lot monitor — the VoltRB hackathon project, rebuilt on
 **Rails 7.2 + Hyperstack**.
 
+**Live demo: https://parkinglot.fly.dev**
+
+## Try it
+
+1. Open https://parkinglot.fly.dev in **two browser windows** side by side.
+2. Tap a spot in one window — it flips red/green in *both* instantly
+   (HyperModel broadcast over ActionCable, no polling).
+3. Drive it from the sensor API and watch every open browser update:
+
+   ```bash
+   curl -X POST https://parkinglot.fly.dev/api/spots/A1 \
+        -H 'Content-Type: application/json' -d '{"occupied": true}'
+   ```
+
+4. **Phone as the parking sensor:** open https://parkinglot.fly.dev/sensor on
+   a phone, pick a spot, tap *Start sensing*, and lay the phone face-up in the
+   "parking spot". Cover it with a toy car (or your hand) — the spot goes red
+   on every screen; uncover it and it goes green. Because fly.dev serves over
+   HTTPS, the camera works directly — no tunnels or flags needed.
+
+## Deploying
+
+Pushes to `main` auto-deploy to Fly via GitHub Actions
+([.github/workflows/fly-deploy.yml](.github/workflows/fly-deploy.yml) — needs
+a `FLY_API_TOKEN` repo secret from `flyctl tokens create deploy -a parkinglot`).
+Manual deploy: `flyctl deploy`.
+
 Four parking spots render green (vacant) or red (occupied). A sensor device —
 a phone lying in the spot — reports to a JSON API when a toy car covers it.
 The page updates **live in every open browser** via HyperModel + ActionCable:
