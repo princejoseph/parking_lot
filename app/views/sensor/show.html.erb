@@ -1,0 +1,78 @@
+<%# Browser-based "distance sensor": the phone lies face-up in the parking
+    spot with this page open. A toy car covering the phone blacks out the
+    front camera -> occupied. Works in any mobile browser, no native app. %>
+<div class="min-h-screen bg-gray-900 text-gray-100 flex flex-col items-center py-10 px-4">
+  <h1 class="text-3xl font-bold mb-1">📷 Spot Sensor</h1>
+  <p class="text-gray-400 mb-6 text-center">Place this phone face-up in the spot.<br>Cover the camera = occupied.</p>
+
+  <select id="spot" class="text-gray-900 rounded px-4 py-3 text-lg mb-4"></select>
+
+  <button id="start" class="bg-blue-600 hover:bg-blue-500 rounded px-6 py-3 text-lg font-bold mb-6">
+    Start sensing
+  </button>
+
+  <div id="state" class="rounded-xl w-full max-w-sm h-40 flex flex-col items-center justify-center
+                         bg-gray-700 transition-colors duration-500 text-2xl font-bold">
+    idle
+  </div>
+  <p class="text-gray-400 mt-4">brightness: <span id="level">–</span></p>
+
+  <video id="cam" playsinline muted class="hidden"></video>
+  <canvas id="frame" width="64" height="48" class="hidden"></canvas>
+</div>
+
+<script>
+  const spotSelect = document.getElementById('spot');
+  const stateBox   = document.getElementById('state');
+  const levelSpan  = document.getElementById('level');
+  const video      = document.getElementById('cam');
+  const canvas     = document.getElementById('frame');
+  const ctx        = canvas.getContext('2d', { willReadFrequently: true });
+
+  // covered/uncovered thresholds with hysteresis so it doesn't flap
+  const DARK = 25, BRIGHT = 45;
+  let occupied = null;
+
+  fetch('/api/spots')
+    .then(r => r.json())
+    .then(spots => {
+      spotSelect.innerHTML = spots
+        .map(s => `<option value="${s.name}">Spot ${s.name}</option>`)
+        .join('');
+    });
+
+  document.getElementById('start').addEventListener('click', async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: 64, height: 48 }
+    });
+    video.srcObject = stream;
+    await video.play();
+    setInterval(sample, 400);
+  });
+
+  function sample() {
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const px = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    let sum = 0;
+    for (let i = 0; i < px.length; i += 4) {
+      sum += 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+    }
+    const avg = sum / (px.length / 4);
+    levelSpan.textContent = avg.toFixed(0);
+
+    if (occupied !== true && avg < DARK)   setOccupied(true);
+    if (occupied !== false && avg > BRIGHT) setOccupied(false);
+  }
+
+  function setOccupied(value) {
+    occupied = value;
+    stateBox.textContent = value ? '🚗 OCCUPIED' : 'VACANT';
+    stateBox.className = stateBox.className
+      .replace(/bg-(gray|red|green)-\d+/, value ? 'bg-red-600' : 'bg-green-600');
+    fetch(`/api/spots/${spotSelect.value}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ occupied: value })
+    });
+  }
+</script>
