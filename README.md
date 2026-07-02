@@ -84,6 +84,13 @@ Instead of a native app with a proximity sensor, this app includes a
    Car leaves → bright again → `occupied: false`. Hysteresis (dark < 25,
    bright > 45) prevents flapping.
 
+The sensor page is itself a Hyperstack component
+([spot_sensor.rb](app/hyperstack/components/spot_sensor.rb)) — Ruby all the
+way down. Only the camera pixel-sampling is native JS (an Opal x-string);
+the occupancy write is a plain HyperModel `spot.save`, which broadcasts to
+every browser the same way the main page does. The JSON API stays for
+external devices (a future Flutter sensor app, curl, etc.).
+
 **Caveat:** `getUserMedia` requires a secure context. `localhost` works as-is;
 for a phone on your LAN you need HTTPS — easiest is a tunnel
 (`ngrok http 3000`, `cloudflared`, tailscale) or Chrome's
@@ -102,9 +109,9 @@ fallback here.
 ```
 app/hyperstack/models/parking_spot.rb   # shared model — server AND browser (Opal)
 app/hyperstack/components/parking_lot.rb# reactive page: green/red grid
+app/hyperstack/components/spot_sensor.rb# camera-as-distance-sensor page (also Opal!)
 app/policies/hyperstack/application_policy.rb  # open access (demo!)
-app/controllers/api/spots_controller.rb # sensor-facing JSON API
-app/views/sensor/show.html.erb          # camera-as-distance-sensor page
+app/controllers/api/spots_controller.rb # JSON API for external sensor devices
 ```
 
 Key Hyperstack conventions (learned the hard way — see
