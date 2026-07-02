@@ -59,6 +59,13 @@ class SpotSensor < HyperComponent
     }
   end
 
+  def recalibrate
+    mutate do
+      @baseline = nil
+      @baseline_samples = []
+    end
+  end
+
   def camera_failed(message)
     mutate do
       @sensing = false
@@ -117,7 +124,11 @@ class SpotSensor < HyperComponent
         end
       end.on(:change) { |e| mutate @spot_id = e.target.value }
 
-      unless @sensing
+      if @sensing
+        BUTTON(class: "bg-gray-600 hover:bg-gray-500 rounded px-6 py-3 text-lg font-bold mb-6") do
+          "Recalibrate"
+        end.on(:click) { recalibrate }
+      else
         BUTTON(class: "bg-blue-600 hover:bg-blue-500 rounded px-6 py-3 text-lg font-bold mb-6") do
           "Start sensing"
         end.on(:click) { start_sensing }
