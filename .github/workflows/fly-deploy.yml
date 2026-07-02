@@ -9,7 +9,7 @@ jobs:
     name: RSpec (hyper-spec + request specs)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ruby/setup-ruby@v1
         with:
           bundler-cache: true
@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     concurrency: deploy-group # only one deploy at a time
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - run: flyctl deploy --remote-only --ha=false
         env:
