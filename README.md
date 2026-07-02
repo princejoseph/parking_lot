@@ -106,12 +106,15 @@ gem auto-creates its connection tables under the in-process Capybara server.
 Instead of a native app with a proximity sensor, this app includes a
 **browser-based sensor page** — so the whole project stays one website:
 
-1. Open `http://<server>:3000/sensor` on a phone, pick the spot, tap
-   *Start sensing*, and lay the phone face-up in the parking spot.
-2. The page samples the front camera's average brightness ~2×/second.
-3. Toy car covers the phone → camera goes dark → `occupied: true` POSTed.
-   Car leaves → bright again → `occupied: false`. Hysteresis (dark < 25,
-   bright > 45) prevents flapping.
+1. Lay the phone face-up in the **empty** parking spot, open
+   `http://<server>:3000/sensor`, pick the spot and tap *Start sensing*.
+2. The page samples the front camera's average brightness ~2×/second and
+   calibrates a baseline from the first ~2 seconds (spot empty).
+3. Detection is relative to that baseline, so a toy car hovering over the
+   phone trips it without sealing the lens, in any room lighting: dimming
+   below 65% of baseline → occupied; recovering above 85% → vacant (the gap
+   is the anti-flap hysteresis). While the spot is empty the baseline slowly
+   tracks lighting drift.
 
 The sensor page is itself a Hyperstack component
 ([spot_sensor.rb](app/hyperstack/components/spot_sensor.rb)) — Ruby all the

@@ -4,9 +4,12 @@
 # every browser — no JSON fetch needed. Only the camera pixel sampling is
 # native JS (getUserMedia has no Opal wrapper).
 class SpotSensor < HyperComponent
-  # covered/uncovered thresholds with hysteresis so it doesn't flap
-  DARK = 25
-  BRIGHT = 45
+  # Occupancy is judged relative to a baseline calibrated at start (spot
+  # empty), so a car hovering over the phone trips it without sealing the
+  # lens, and it works in bright or dim rooms. Ratio gap = hysteresis.
+  CALIBRATION_SAMPLES = 5     # ~2s at 400ms/sample
+  OCCUPIED_RATIO = 0.65       # dims below 65% of baseline -> occupied
+  VACANT_RATIO   = 0.85       # recovers above 85% -> vacant
 
   before_mount do
     @spot_id = nil
@@ -14,6 +17,8 @@ class SpotSensor < HyperComponent
     @occupied = nil
     @sensing = false
     @camera_error = nil
+    @baseline = nil
+    @baseline_samples = nil
   end
 
   def selected_spot
@@ -22,7 +27,11 @@ class SpotSensor < HyperComponent
   end
 
   def start_sensing
-    mutate @sensing = true
+    mutate do
+      @sensing = true
+      @baseline = nil
+      @baseline_samples = []
+    end
     %x{
       var video  = document.getElementById('sensor-cam');
       var canvas = document.getElementById('sensor-frame');
@@ -57,10 +66,22 @@ class SpotSensor < HyperComponent
 
   def sample(avg)
     mutate @level = avg.round
-    if @occupied != true && avg < DARK
+
+    if @baseline.nil?
+      @baseline_samples << avg
+      if @baseline_samples.size >= CALIBRATION_SAMPLES
+        mutate @baseline = @baseline_samples.inject(:+) / @baseline_samples.size
+      end
+      return
+    end
+
+    if @occupied != true && avg < @baseline * OCCUPIED_RATIO
       report(true)
-    elsif @occupied != false && avg > BRIGHT
+    elsif @occupied != false && avg > @baseline * VACANT_RATIO
       report(false)
+    elsif @occupied == false
+      # track slow lighting drift while the spot is empty
+      @baseline = (0.95 * @baseline) + (0.05 * avg)
     end
   end
 
@@ -73,6 +94,7 @@ class SpotSensor < HyperComponent
   end
 
   def state_text
+    return "calibrating…" if @sensing && @baseline.nil?
     return "idle" if @occupied.nil?
     @occupied ? "🚗 OCCUPIED" : "VACANT"
   end
@@ -86,7 +108,8 @@ class SpotSensor < HyperComponent
     DIV(class: "min-h-screen bg-gray-900 text-gray-100 flex flex-col items-center py-10 px-4") do
       H1(class: "text-3xl font-bold mb-1") { "📷 Spot Sensor" }
       P(class: "text-gray-400 mb-6 text-center") do
-        "Place this phone face-up in the spot. Cover the camera = occupied."
+        "Place this phone face-up in the empty spot, then start. " \
+        "Anything dimming the camera = occupied."
       end
 
       SELECT(class: "text-gray-900 rounded px-4 py-3 text-lg mb-4", value: (@spot_id || selected_spot&.id).to_s) do
@@ -109,7 +132,9 @@ class SpotSensor < HyperComponent
                  "items-center justify-center transition-colors duration-500 text-2xl font-bold") do
         state_text
       end
-      P(class: "text-gray-400 mt-4") { "brightness: #{@level || '–'}" }
+      P(class: "text-gray-400 mt-4") do
+        "brightness: #{@level || '–'}#{" (baseline #{@baseline.round})" if @baseline}"
+      end
 
       VIDEO(id: "sensor-cam", playsInline: true, muted: true, class: "hidden")
       CANVAS(id: "sensor-frame", width: 64, height: 48, class: "hidden")
