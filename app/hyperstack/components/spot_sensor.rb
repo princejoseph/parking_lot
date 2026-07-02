@@ -9,9 +9,11 @@ class SpotSensor < HyperComponent
   # lens, and it works in bright or dim rooms. Ratio gap = hysteresis.
   # The baseline is fixed after calibration: adapting it while "vacant"
   # let an approaching car drag it down and blunt the trigger.
+  # Whole-frame average brightness: a darkest-grid-cell metric was tried and
+  # was too twitchy (a head leaning over the phone tripped it).
   CALIBRATION_SAMPLES = 5     # ~2s at 400ms/sample
-  OCCUPIED_RATIO = 0.65       # dims below 65% of baseline -> occupied
-  VACANT_RATIO   = 0.85       # recovers above 85% -> vacant
+  OCCUPIED_RATIO = 0.80       # dims below 80% of baseline -> occupied
+  VACANT_RATIO   = 0.90       # recovers above 90% -> vacant
 
   before_mount do
     @spot_id = nil
@@ -45,26 +47,13 @@ class SpotSensor < HyperComponent
         return video.play();
       }).then(function() {
         setInterval(function() {
-          var w = canvas.width, h = canvas.height;
-          ctx.drawImage(video, 0, 0, w, h);
-          var px = ctx.getImageData(0, 0, w, h).data;
-          // Average whole-frame brightness dilutes the car's shadow with
-          // ambient light. Instead take the DARKEST cell of a 4x4 grid —
-          // the car over the lens blacks out at least one cell.
-          var bw = w / 4, bh = h / 4, darkest = 255;
-          for (var by = 0; by < 4; by++) {
-            for (var bx = 0; bx < 4; bx++) {
-              var sum = 0;
-              for (var y = by * bh; y < (by + 1) * bh; y++) {
-                for (var x = bx * bw; x < (bx + 1) * bw; x++) {
-                  var i = (y * w + x) * 4;
-                  sum += 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
-                }
-              }
-              darkest = Math.min(darkest, sum / (bw * bh));
-            }
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          var px = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+          var sum = 0;
+          for (var i = 0; i < px.length; i += 4) {
+            sum += 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
           }
-          #{sample(`darkest`)};
+          #{sample(`sum / (px.length / 4)`)};
         }, 400);
       }).catch(function(e) {
         #{camera_failed(`'' + e`)};
@@ -156,7 +145,7 @@ class SpotSensor < HyperComponent
         state_text
       end
       P(class: "text-gray-400 mt-4") do
-        "darkest region: #{@level || '–'}#{" (baseline #{@baseline.round})" if @baseline}"
+        "brightness: #{@level || '–'}#{" (baseline #{@baseline.round})" if @baseline}"
       end
 
       VIDEO(id: "sensor-cam", playsInline: true, muted: true, class: "hidden")

@@ -108,16 +108,13 @@ Instead of a native app with a proximity sensor, this app includes a
 
 1. Lay the phone face-up in the **empty** parking spot, open
    `http://<server>:3000/sensor`, pick the spot and tap *Start sensing*.
-2. The page samples the front camera ~2×/second, takes the brightness of the
-   **darkest cell of a 4×4 grid** (whole-frame averages dilute the car's
-   shadow with ambient light), and calibrates a baseline from the first
-   ~2 seconds (spot empty).
-3. Detection is relative to that baseline, so a toy car hovering over the
-   phone trips it without sealing the lens, in any room lighting: dimming
-   below 65% of baseline → occupied; recovering above 85% → vacant (the gap
-   is the anti-flap hysteresis). The baseline stays fixed after calibration —
-   if the room lighting changes a lot, tap *Recalibrate* (with the spot
-   empty) to take a fresh baseline.
+2. The page samples the front camera's average brightness ~2×/second and
+   calibrates a baseline from the first ~2 seconds (spot empty).
+3. Detection is relative to that baseline, so it works in any room lighting:
+   dimming below 80% of baseline → occupied; recovering above 90% → vacant
+   (the gap is the anti-flap hysteresis). The baseline stays fixed after
+   calibration — if the room lighting changes a lot, tap *Recalibrate*
+   (with the spot empty) to take a fresh baseline.
 
 The sensor page is itself a Hyperstack component
 ([spot_sensor.rb](app/hyperstack/components/spot_sensor.rb)) — Ruby all the
