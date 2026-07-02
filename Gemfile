@@ -56,6 +56,15 @@ group :development do
   gem "web-console"
 end
 
+group :test do
+  # hyper-spec must come from the same fork/branch as the other hyperstack gems
+  # require: false — these load RSpec internals, which don't exist during
+  # Bundler.require at app boot; rails_helper requires them at the right time
+  gem "hyper-spec", github: "princejoseph/hyperstack", branch: "rails-7-compatibility", glob: "ruby/hyper-spec/*.gemspec", require: false
+  gem "rspec-rails"
+  gem "rspec-wait", require: false
+end
+
 
 group :development do
   gem "foreman"

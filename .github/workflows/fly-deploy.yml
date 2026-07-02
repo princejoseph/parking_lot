@@ -5,8 +5,25 @@ on:
     branches: [main]
 
 jobs:
+  test:
+    name: RSpec (hyper-spec + request specs)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      - run: bin/rails db:prepare
+        env:
+          RAILS_ENV: test
+      - run: bundle exec rspec
+        env:
+          RAILS_ENV: test
+          DRIVER: github
+
   deploy:
     name: Deploy to Fly.io
+    needs: test
     runs-on: ubuntu-latest
     concurrency: deploy-group # only one deploy at a time
     steps:

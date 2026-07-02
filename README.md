@@ -10,10 +10,12 @@ A real-time parking lot monitor — the VoltRB hackathon project, rebuilt on
 1. Open https://parkinglot.fly.dev in **two browser windows** side by side.
 2. Tap a spot in one window — it flips red/green in *both* instantly
    (HyperModel broadcast over ActionCable, no polling).
-3. Drive it from the sensor API and watch every open browser update:
+3. Drive it from the sensor API and watch every open browser update
+   (writes need the sensor token — see below; reads are public):
 
    ```bash
    curl -X POST https://parkinglot.fly.dev/api/spots/A1 \
+        -H "Authorization: Bearer $SENSOR_API_TOKEN" \
         -H 'Content-Type: application/json' -d '{"occupied": true}'
    ```
 
@@ -65,12 +67,39 @@ triggers the broadcast, so anything that hits this endpoint updates all
 browsers in real time:
 
 ```bash
-# spot id or name, POST/PUT/PATCH all accepted
+# spot id or name, POST/PUT/PATCH all accepted; writes need a bearer token
 curl -X POST http://localhost:3000/api/spots/A1 \
+     -H 'Authorization: Bearer dev-token' \
      -H 'Content-Type: application/json' -d '{"occupied": true}'
 
-curl http://localhost:3000/api/spots   # current state of all spots
+curl http://localhost:3000/api/spots   # current state of all spots (public)
 ```
+
+**Auth:** writes require `Authorization: Bearer <SENSOR_API_TOKEN>`. In
+development and test the token is `dev-token`; in production it comes from
+the `SENSOR_API_TOKEN` env var (`fly secrets set SENSOR_API_TOKEN=$(openssl
+rand -hex 16) -a parkinglot`) and writes are rejected if it is unset. The
+in-browser pages don't use the API — they write through HyperModel — so
+only external devices need the token.
+
+## Tests
+
+RSpec + [hyper-spec](https://github.com/hyperstack-org/hyperstack/tree/edge/ruby/hyper-spec)
+(from the same fork). Component specs mount `ParkingLot`/`SpotSensor` in a
+real headless Chrome and cover click-to-toggle, the HyperModel write path the
+sensor uses, and server→browser broadcast; request specs cover API auth.
+
+```bash
+RAILS_ENV=test bin/rails db:prepare
+bundle exec rspec        # 11 examples
+```
+
+They also run in CI: the deploy workflow's `test` job gates the deploy.
+
+Two non-obvious bits of test plumbing (see `spec/rails_helper.rb`):
+transactional fixtures are off because HyperModel broadcasts fire on
+`after_commit`, and the suite defines `Hyperstack.on_server?` as true so the
+gem auto-creates its connection tables under the in-process Capybara server.
 
 ## The sensor device: `/sensor`
 
