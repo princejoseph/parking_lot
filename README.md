@@ -5,6 +5,13 @@ A real-time parking lot monitor — the VoltRB hackathon project, rebuilt on
 
 **Live demo: https://parkinglot.fly.dev**
 
+Every open browser shows the same live grid. When the sensor reports a car
+(or you tap a tile), the spot flips everywhere at once — no refresh:
+
+| All vacant — *4 of 4 spots free* | 🚗 parks in A2 — *3 of 4 spots free* |
+|:---:|:---:|
+| 🟩 A1 &nbsp; 🟩 A2 <br> 🟩 A3 &nbsp; 🟩 A4 | 🟩 A1 &nbsp; 🟥 A2 🚗 <br> 🟩 A3 &nbsp; 🟩 A4 |
+
 ## Try it
 
 1. Open https://parkinglot.fly.dev in **two browser windows** side by side.
