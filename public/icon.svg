@@ -2,7 +2,12 @@
   <rect width="512" height="512" rx="96" fill="#111827"/>
   <rect x="44" y="44" width="424" height="424" rx="56" fill="#16a34a"
         stroke="#ffffff" stroke-width="14" stroke-dasharray="44 28"/>
-  <text x="256" y="360" font-family="Helvetica, Arial, sans-serif"
-        font-size="300" font-weight="800" fill="#ffffff"
-        text-anchor="middle">P</text>
+  <!-- side-view car -->
+  <rect x="110" y="268" width="292" height="74" rx="26" fill="#ffffff"/>
+  <path d="M172 272 q12 -58 62 -58 h50 q50 0 64 58 z" fill="#ffffff"/>
+  <path d="M198 262 q12 -34 38 -34 h38 q28 0 42 34 z" fill="#16a34a"/>
+  <circle cx="190" cy="342" r="40" fill="#111827"/>
+  <circle cx="190" cy="342" r="17" fill="#ffffff"/>
+  <circle cx="334" cy="342" r="40" fill="#111827"/>
+  <circle cx="334" cy="342" r="17" fill="#ffffff"/>
 </svg>
